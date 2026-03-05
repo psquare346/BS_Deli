@@ -623,7 +623,9 @@
     }
 
     function generatePickupTimeOptions() {
-        const now = new Date();
+        // Always use Central Time (store timezone) regardless of customer's browser timezone
+        const ctString = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' });
+        const now = new Date(ctString);
         const day = now.getDay();
         const hours = STORE_HOURS[day];
         let html = '<option value="">Select a time...</option>';
