@@ -1,0 +1,19 @@
+{
+  "name": "bs-deli-print-bridge",
+  "version": "2.0.0",
+  "description": "Print bridge for B's Deli - polls Google Sheets for new orders and prints receipts",
+  "main": "print-bridge.js",
+  "scripts": {
+    "start": "node print-bridge.js",
+    "test": "node print-bridge.js --test",
+    "preview": "node print-bridge.js --preview"
+  },
+  "dependencies": {
+    "node-fetch": "^2.7.0",
+    "pdfkit": "^0.15.1",
+    "pdf-to-printer": "^5.6.0"
+  },
+  "optionalDependencies": {
+    "node-thermal-printer": "^4.4.3"
+  }
+}

@@ -1,0 +1,9 @@
+# B's Deli website files
+node_modules/
+print-bridge/node_modules/
+print-bridge/config.json
+
+# System files
+.DS_Store
+Thumbs.db
+*.log
