@@ -26,11 +26,10 @@
         6: { open: 6, close: 20 },   // Sat 6AM-8PM
     };
 
-    // Pizza toppings for customization
-    const PIZZA_TOPPINGS = [
-        'Pepperoni', 'Sausage', 'Beef', 'Bacon',
-        'Bell Peppers', 'Onions', 'Banana Peppers',
-        'Mushrooms', 'Black Olives', 'Jalapeño'
+    // Pizza add-ons with prices
+    const PIZZA_ADDONS = [
+        { name: 'Extra Cheese', price: 1.50 },
+        { name: 'Jalapeño', price: 0.50 }
     ];
 
     // Categories that allow topping customization
@@ -385,12 +384,12 @@
 
         title.textContent = 'Customize: ' + itemName;
 
-        let html = '<p>Select your toppings (included with your pizza):</p>';
+        let html = '<p>Add extras to your pizza:</p>';
         html += '<div class="topping-list">';
-        PIZZA_TOPPINGS.forEach((t, i) => {
+        PIZZA_ADDONS.forEach((addon, i) => {
             html += '<div class="topping-option">';
-            html += '<input type="checkbox" id="top_' + i + '" value="' + t + '">';
-            html += '<label for="top_' + i + '">' + t + '</label>';
+            html += '<input type="checkbox" id="addon_' + i + '" value="' + addon.name + '" data-price="' + addon.price + '">';
+            html += '<label for="addon_' + i + '">' + addon.name + ' <span style="color:var(--barn-red);font-weight:700;">+$' + addon.price.toFixed(2) + '</span></label>';
             html += '</div>';
         });
         html += '</div>';
@@ -417,13 +416,18 @@
         const newAddBtn = addBtn.cloneNode(true);
         addBtn.parentNode.replaceChild(newAddBtn, addBtn);
         newAddBtn.addEventListener('click', function () {
-            const selected = [];
-            body.querySelectorAll('input:checked').forEach(cb => selected.push(cb.value));
+            const selectedAddons = [];
+            var addonsTotal = 0;
+            body.querySelectorAll('input:checked').forEach(function (cb) {
+                var addonPrice = parseFloat(cb.getAttribute('data-price')) || 0;
+                selectedAddons.push({ name: cb.value, price: addonPrice });
+                addonsTotal += addonPrice;
+            });
             cart.add({
                 name: itemName,
-                price: basePrice,
+                price: basePrice + addonsTotal,
                 category: category,
-                toppings: selected
+                toppings: selectedAddons.map(function (a) { return a.name + ' (+$' + a.price.toFixed(2) + ')'; })
             });
             renderCartUI();
             close();
