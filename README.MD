@@ -1,6 +1,6 @@
-# B's Deli — Menu Website
+# B's Grocery — Menu Website
 
-A single-page menu website for **B's Deli**, a country store & deli in Woodland, Alabama. Hosted on GitHub Pages, with menu data powered by Google Sheets.
+A single-page menu website for **B's Grocery**, a country store & deli in Woodland, Alabama. Hosted on GitHub Pages, with menu data powered by Google Sheets.
 
 ## 🏪 Store Info
 
@@ -93,4 +93,4 @@ If the Google Sheet is unreachable or not configured, the site displays a built-
 
 ---
 
-*© 2026 B's Deli. Woodland, Alabama.*
+*© 2026 B's Grocery. Woodland, Alabama.*

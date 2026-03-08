@@ -1,5 +1,5 @@
 /**
- * B's Deli — Online Ordering System
+ * B's Grocery — Online Ordering System
  * Cart management, menu loading, topping customization, and order submission
  */
 (function () {

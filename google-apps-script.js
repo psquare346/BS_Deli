@@ -1,11 +1,11 @@
 /**
- * B's Deli — Google Apps Script
+ * B's Grocery — Google Apps Script
  * Receives online orders and writes them to the "Orders" sheet.
  * Also serves new orders to the Print Bridge via GET requests.
  * 
  * SETUP INSTRUCTIONS:
  * ===================
- * 1. Open your "B's Deli Orders" Google Sheet
+ * 1. Open your "B's Grocery Orders" Google Sheet
  * 2. Rename the first sheet tab to "Orders"
  * 3. Add these headers in Row 1:
  *    A: Order#  |  B: Timestamp  |  C: Name  |  D: Phone  |  E: Pickup Time

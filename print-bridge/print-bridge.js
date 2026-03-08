@@ -1,5 +1,5 @@
 /**
- * B's Deli — Print Bridge
+ * B's Grocery — Print Bridge
  * Polls Google Sheets for new orders and prints receipts.
  * 
  * Supports two printer modes (set in config.json):
@@ -79,148 +79,32 @@ async function previewReceipt(order) {
 }
 
 // ================================================================
-// THERMAL MODE — ESC/POS for thermal receipt printers
+// THERMAL MODE — PDF printing to auto-detected thermal printer
+// (No native compilation required — uses pdf-to-printer)
 // ================================================================
-let detectedPrinterInterface = null;
-
-function createThermalPrinter() {
-    let ThermalPrinter;
-    try {
-        ThermalPrinter = require('node-thermal-printer').printer;
-    } catch (e) {
-        console.error('❌ node-thermal-printer is not installed.');
-        console.error('   To use thermal mode, run: npm install node-thermal-printer @thiagoelg/node-printer');
-        console.error('   Or switch to "standard" mode in config.json.');
-        process.exit(1);
-    }
-
-    if (!detectedPrinterInterface) {
-        let printerInterface = config.printer.interface || 'printer:auto';
-        if (printerInterface === 'printer:auto') {
-            printerInterface = findPrinter();
-        }
-        detectedPrinterInterface = printerInterface;
-    }
-
-    const printer = new ThermalPrinter({
-        type: 'epson',  // SGT-88iV uses ESC/POS (Epson compatible)
-        interface: detectedPrinterInterface,
-        characterSet: config.printer.characterSet || 'USA',
-        width: config.printer.width || 48,
-        removeSpecialCharacters: false,
-        options: {
-            timeout: 5000
-        }
-    });
-
-    return printer;
-}
+let detectedThermalPrinter = null;
 
 async function printReceiptThermal(order) {
-    const printer = createThermalPrinter();
-    const store = config.store;
-
     try {
-        // ---- Header ----
-        printer.alignCenter();
-        printer.setTextSize(1, 1);
-        printer.bold(true);
-        printer.println('================================');
-        printer.setTextSize(2, 2);
-        printer.println(store.name || "B's Deli");
-        printer.setTextSize(1, 1);
-        printer.println('ONLINE ORDER');
-        printer.println('================================');
-        printer.bold(false);
-        printer.newLine();
+        // Generate the PDF receipt
+        const pdfPath = await generateReceiptPDF(order, config.store);
+        console.log('   📄 PDF generated: ' + path.basename(pdfPath));
 
-        // ---- Store Info ----
-        printer.alignCenter();
-        printer.setTextSize(0, 0);
-        if (store.address) printer.println(store.address);
-        if (store.phone) printer.println(store.phone);
-        printer.newLine();
-
-        // ---- Order Number (large) ----
-        printer.alignCenter();
-        printer.bold(true);
-        printer.setTextSize(2, 2);
-        printer.println('#' + (order.orderNumber || 'N/A'));
-        printer.setTextSize(1, 1);
-        printer.bold(false);
-        printer.newLine();
-
-        // ---- Customer Info ----
-        printer.alignLeft();
-        printer.drawLine();
-        printer.bold(true);
-        printer.println('Customer: ' + (order.name || 'N/A'));
-        printer.println('Phone:    ' + (order.phone || 'N/A'));
-        printer.println('Pickup:   ' + (order.pickupTime || 'ASAP'));
-        printer.bold(false);
-        printer.drawLine();
-        printer.newLine();
-
-        // ---- Order Items ----
-        printer.bold(true);
-        printer.println('ORDER ITEMS');
-        printer.bold(false);
-        printer.drawLine();
-
-        const itemLines = (order.items || '').split('\n').filter(l => l.trim());
-        itemLines.forEach(line => {
-            printer.println(line.trim());
-        });
-
-        printer.drawLine();
-
-        // ---- Totals ----
-        printer.alignRight();
-        if (order.subtotal) {
-            printer.println('Subtotal:  ' + order.subtotal);
-        }
-        if (order.tax) {
-            printer.println('Tax:       ' + order.tax);
-        }
-        printer.newLine();
-        printer.bold(true);
-        printer.setTextSize(1, 1);
-        if (order.total) {
-            printer.println('TOTAL:     ' + order.total);
-        }
-        printer.bold(false);
-        printer.setTextSize(0, 0);
-        printer.alignLeft();
-        printer.newLine();
-
-        // ---- Notes ----
-        if (order.notes && order.notes.trim()) {
-            printer.drawLine();
-            printer.bold(true);
-            printer.println('NOTES:');
-            printer.bold(false);
-            printer.println(order.notes);
-            printer.newLine();
+        // Auto-detect the thermal printer if not yet found
+        if (!detectedThermalPrinter) {
+            detectedThermalPrinter = findPrinter();
         }
 
-        // ---- Footer ----
-        printer.drawLine();
-        printer.alignCenter();
-        printer.println('Order placed: ' + (order.timestamp || ''));
-        printer.println('Printed: ' + new Date().toLocaleString());
-        printer.newLine();
-        printer.bold(true);
-        printer.println('** COLLECT PAYMENT AT REGISTER **');
-        printer.bold(false);
-        printer.newLine();
-        printer.newLine();
-
-        // Cut paper
-        printer.cut();
-
-        // Execute print
-        await printer.execute();
+        // Print using pdf-to-printer
+        const { print } = require('pdf-to-printer');
+        await print(pdfPath, { printer: detectedThermalPrinter });
         console.log('   🖨️  Receipt printed for order #' + order.orderNumber);
+
+        // Clean up temp file after a delay
+        setTimeout(() => {
+            try { fs.unlinkSync(pdfPath); } catch (e) { /* ignore */ }
+        }, 10000);
+
         return true;
 
     } catch (error) {
@@ -276,7 +160,7 @@ function findPrinter() {
 
     if (match) {
         console.log('   ✅ Found: ' + match);
-        return 'printer:' + match;
+        return match;
     }
 
     // If no match, use the first non-system printer
@@ -287,7 +171,7 @@ function findPrinter() {
 
     if (nonSystem) {
         console.log('   ⚠️  No receipt printer found by name, using: ' + nonSystem);
-        return 'printer:' + nonSystem;
+        return nonSystem;
     }
 
     console.log('   ❌ No suitable printer found. Please set the printer name in config.json');

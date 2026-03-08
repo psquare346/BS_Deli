@@ -1,4 +1,4 @@
-# B's Deli — Print Bridge Setup
+# B's Grocery — Print Bridge Setup
 
 ## What This Does
 The print bridge runs on the store PC and automatically prints new online orders as receipts.
@@ -28,7 +28,7 @@ Open `config.json` and set:
 - **`printer.name`**: Your printer name as it appears in Windows (run `--list` to find it)
 
 ### 3. Update the Google Apps Script
-1. Open your **B's Deli Orders** Google Sheet
+1. Open your **B's Grocery Orders** Google Sheet
 2. Go to **Extensions → Apps Script**
 3. **Replace all the code** with the contents of `google-apps-script.js`
 4. Click **Save**

@@ -1,7 +1,7 @@
 @echo off
 echo.
 echo ================================
-echo   B's Deli Print Bridge Setup
+echo   B's Grocery Print Bridge Setup
 echo ================================
 echo.
 
