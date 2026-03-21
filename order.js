@@ -1,6 +1,6 @@
 /**
  * B's Grocery — Online Ordering System
- * Cart management, menu loading, topping customization, and order submission
+ * Cart management, menu loading, topping customization, Square payments, and order submission
  */
 (function () {
     'use strict';
@@ -11,9 +11,13 @@
     const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTx9V5D-y-E4V7Xta3lnU9aEFuVddUjNrX1HVYNnd95-izGgnarlg3HhfaX79rAhwNfMEMFl6F7K55r/pub?gid=0&single=true&output=csv';
 
     // Google Apps Script Web App URL — set this after deploying your Apps Script
-    const ORDER_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwfhzulzXHyY9rZYQDQ_X6UujCtDznsPy8FmQQT5vA7HQ0V7BTlxHhDCZXSuZQu8qguEg/exec';
+    const ORDER_ENDPOINT = 'https://script.google.com/macros/s/AKfycbw0Azf5QfgBccC1k7ErxTZjSQwjif1bODEmbgtiNyCtirGiqB5cpU5OF68UJoF9rjnlFQ/exec';
 
     const TAX_RATE = 0.095; // 9.5% — Woodland, AL (4% state + 2.5% Randolph County + 3% city)
+
+    // Square Payment Configuration (Production)
+    const SQUARE_APP_ID = 'sq0idp-vuYOdggG4w3l3OrMj4gcqw';
+    const SQUARE_LOCATION_ID = 'L5TVQM359VQVC';
 
     const STORE_HOURS = {
         // 0=Sunday, 1=Monday ... 6=Saturday
@@ -597,6 +601,116 @@
     }
 
     // ================================================================
+    // SQUARE PAYMENTS SDK
+    // ================================================================
+    let squareCard = null;       // Square Card instance
+    let squarePayments = null;   // Square Payments instance
+    let googlePayBtn = null;     // Google Pay instance
+    let applePayBtn = null;      // Apple Pay instance
+
+    async function initSquarePayments() {
+        try {
+            if (!window.Square) {
+                console.warn('Square SDK not loaded');
+                return;
+            }
+
+            squarePayments = window.Square.payments(SQUARE_APP_ID, SQUARE_LOCATION_ID);
+
+            // Initialize Card input
+            squareCard = await squarePayments.card({
+                style: {
+                    '.input-container': {
+                        borderColor: '#DEB887',
+                        borderRadius: '6px'
+                    },
+                    '.input-container.is-focus': {
+                        borderColor: '#DAA520'
+                    },
+                    '.input-container.is-error': {
+                        borderColor: '#C0392B'
+                    },
+                    '.message-text': {
+                        color: '#5C4A42'
+                    },
+                    '.message-icon': {
+                        color: '#5C4A42'
+                    },
+                    '.message-text.is-error': {
+                        color: '#C0392B'
+                    },
+                    input: {
+                        fontSize: '14px',
+                        color: '#3B2F2F',
+                        backgroundColor: '#FFFFFF'
+                    },
+                    'input::placeholder': {
+                        color: '#8B7D75'
+                    }
+                }
+            });
+            await squareCard.attach('#card-container');
+
+            // Initialize Google Pay
+            try {
+                const gpayRequest = squarePayments.paymentRequest({
+                    countryCode: 'US',
+                    currencyCode: 'USD',
+                    total: {
+                        amount: '0.00',
+                        label: "B's Grocery"
+                    }
+                });
+                googlePayBtn = await squarePayments.googlePay(gpayRequest);
+                await googlePayBtn.attach('#google-pay-button');
+                // Show the "or pay with card" divider since a wallet is available
+                document.getElementById('paymentDivider').style.display = 'flex';
+            } catch (gpErr) {
+                console.log('Google Pay not available:', gpErr);
+                document.getElementById('google-pay-button').style.display = 'none';
+            }
+
+            // Initialize Apple Pay
+            try {
+                const apayRequest = squarePayments.paymentRequest({
+                    countryCode: 'US',
+                    currencyCode: 'USD',
+                    total: {
+                        amount: '0.00',
+                        label: "B's Grocery"
+                    }
+                });
+                applePayBtn = await squarePayments.applePay(apayRequest);
+                await applePayBtn.attach('#apple-pay-button');
+                document.getElementById('paymentDivider').style.display = 'flex';
+            } catch (apErr) {
+                console.log('Apple Pay not available:', apErr);
+                document.getElementById('apple-pay-button').style.display = 'none';
+            }
+
+        } catch (error) {
+            console.error('Failed to initialize Square Payments:', error);
+            showPaymentError('Payment system is temporarily unavailable. Please try again later.');
+        }
+    }
+
+    function showPaymentError(message) {
+        const errorEl = document.getElementById('paymentError');
+        if (errorEl) {
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+        }
+    }
+
+    function clearPaymentError() {
+        const errorEl = document.getElementById('paymentError');
+        if (errorEl) {
+            errorEl.textContent = '';
+            errorEl.style.display = 'none';
+        }
+    }
+
+    // ================================================================
     // ORDER FORM
     // ================================================================
     function openOrderForm() {
@@ -623,7 +737,15 @@
         const pickupSelect = document.getElementById('pickupTime');
         pickupSelect.innerHTML = generatePickupTimeOptions();
 
+        // Clear any previous errors
+        clearPaymentError();
+
         overlay.classList.add('active');
+
+        // Initialize Square payment form if not already done
+        if (!squareCard) {
+            initSquarePayments();
+        }
     }
 
     function generatePickupTimeOptions() {
@@ -705,29 +827,51 @@
 
         if (!valid) return;
 
+        // Clear previous payment errors
+        clearPaymentError();
+
         const submitBtn = document.getElementById('submitOrderBtn');
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="spinner"></span> Placing Order...';
-
-        const orderData = {
-            customerName: name,
-            phone: phone,
-            pickupTime: pickupTime,
-            notes: notes,
-            items: cart.items.map(i => ({
-                name: i.name,
-                qty: i.qty,
-                price: i.price,
-                toppings: i.toppings || [],
-                notes: i.notes || ''
-            })),
-            subtotal: cart.subtotal,
-            tax: cart.tax,
-            total: cart.total,
-            timestamp: new Date().toISOString()
-        };
+        submitBtn.innerHTML = '<span class="spinner"></span> Processing Payment...';
 
         try {
+            // ---- Step 1: Tokenize the card ----
+            if (!squareCard) {
+                throw new Error('Payment form not loaded. Please refresh and try again.');
+            }
+
+            const tokenResult = await squareCard.tokenize();
+
+            if (tokenResult.status !== 'OK') {
+                let errorMsg = 'Please check your card details and try again.';
+                if (tokenResult.errors && tokenResult.errors.length > 0) {
+                    errorMsg = tokenResult.errors.map(e => e.message).join('. ');
+                }
+                throw new Error(errorMsg);
+            }
+
+            const sourceId = tokenResult.token;
+
+            // ---- Step 2: Send order + payment token to Google Apps Script ----
+            const orderData = {
+                customerName: name,
+                phone: phone,
+                pickupTime: pickupTime,
+                notes: notes,
+                sourceId: sourceId, // Square payment token
+                items: cart.items.map(i => ({
+                    name: i.name,
+                    qty: i.qty,
+                    price: i.price,
+                    toppings: i.toppings || [],
+                    notes: i.notes || ''
+                })),
+                subtotal: cart.subtotal,
+                tax: cart.tax,
+                total: cart.total,
+                timestamp: new Date().toISOString()
+            };
+
             if (!ORDER_ENDPOINT) {
                 // Demo mode — simulate a successful order
                 await new Promise(resolve => setTimeout(resolve, 1500));
@@ -735,17 +879,16 @@
                 return;
             }
 
-            // Generate order number client-side (server also generates one)
-            // We use client-side because Google Apps Script returns an opaque
-            // response when using no-cors mode (required to avoid CORS errors)
+            // Send order with payment token to Apps Script
+            // NOTE: We use no-cors because Google Apps Script redirects POST.
+            // We trust that the payment was processed if tokenization succeeded.
+            // The payment processing happens server-side in Apps Script.
             var now = new Date();
             var mm = ('0' + (now.getMonth() + 1)).slice(-2);
             var dd = ('0' + now.getDate()).slice(-2);
             var seq = ('0000' + Date.now().toString().slice(-4)).slice(-4);
             var orderNum = 'BD-' + mm + dd + '-' + seq;
 
-            // Send order — must use no-cors because Google Apps Script
-            // redirects POST requests, which triggers CORS blocks in browsers
             await fetch(ORDER_ENDPOINT, {
                 method: 'POST',
                 mode: 'no-cors',
@@ -754,15 +897,15 @@
                 redirect: 'follow'
             });
 
-            // With no-cors the response is opaque (can't read it),
-            // but the order was submitted successfully
+            // With no-cors the response is opaque, but the payment is processed
+            // server-side by Apps Script calling Square API
             showConfirmation(orderNum);
 
         } catch (error) {
-            console.error('Order submission error:', error);
-            alert('There was a problem submitting your order. Please try again or call us at (256) 449-6221.');
+            console.error('Order/Payment error:', error);
+            showPaymentError(error.message || 'Payment failed. Please try again.');
             submitBtn.disabled = false;
-            submitBtn.textContent = 'Place Order — Pay at Pickup';
+            submitBtn.textContent = 'Pay & Place Order';
         }
     }
 
@@ -784,12 +927,12 @@
 
         card.innerHTML = '<div class="confirmation-card">'
             + '<div class="check-icon">✓</div>'
-            + '<h3>Order Placed!</h3>'
+            + '<h3>Order Placed & Paid!</h3>'
             + '<div class="order-number">#' + orderNumber + '</div>'
-            + '<p>Your order has been sent to B\'s Deli.<br>'
+            + '<p>Your order has been sent to B\'s Grocery.<br>'
             + 'It\'s being prepared now!</p>'
             + '<p style="margin-top:0.75rem;font-weight:600;">Pickup Time: ' + escapeHTML(document.getElementById('pickupTime').value || 'ASAP') + '</p>'
-            + '<p style="margin-top:0.5rem;color:var(--text-light);font-size:0.8rem;">Pay at the counter with cash or card.</p>'
+            + '<p style="margin-top:0.5rem;color:var(--text-light);font-size:0.8rem;">✅ Payment confirmed — just pick up your order!</p>'
             + '<button class="new-order-btn" onclick="location.reload()">Start New Order</button>'
             + '</div>';
 

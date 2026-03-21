@@ -2,6 +2,7 @@
 node_modules/
 print-bridge/node_modules/
 print-bridge/config.json
+google-apps-script.js
 
 # System files
 .DS_Store

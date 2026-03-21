@@ -11,7 +11,7 @@ const os = require('os');
 
 // Receipt page size: 80mm wide (≈226pt), variable height
 const RECEIPT_WIDTH = 226;
-const MARGIN = 14;
+const MARGIN = 4;
 const CONTENT_WIDTH = RECEIPT_WIDTH - (MARGIN * 2);
 
 /**
@@ -147,7 +147,15 @@ function renderReceipt(doc, order, store) {
     }
     centerText('Printed: ' + new Date().toLocaleString(), 6, 'Helvetica');
     gap(6);
-    centerText('** COLLECT PAYMENT AT REGISTER **', 8, 'Helvetica-Bold');
+    // ---- Payment Status ----
+    if (order.paymentStatus && order.paymentStatus.toString().trim().toLowerCase() === 'paid') {
+        centerText('** PAID ONLINE **', 9, 'Helvetica-Bold');
+        if (order.squarePaymentId) {
+            centerText('Ref: ' + order.squarePaymentId.toString(), 6, 'Helvetica');
+        }
+    } else {
+        centerText('** COLLECT PAYMENT AT REGISTER **', 8, 'Helvetica-Bold');
+    }
     gap(8);
 
     return y;

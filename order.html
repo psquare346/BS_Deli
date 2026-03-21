@@ -23,6 +23,9 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,400;0,500;1,400&family=Playfair+Display:wght@600;700;800&display=swap"
         rel="stylesheet">
 
+    <!-- Square Web Payments SDK (Production) -->
+    <script src="https://web.squarecdn.com/v1/square.js"></script>
+
     <!-- Ordering Stylesheet -->
     <link rel="stylesheet" href="order.css">
 </head>
@@ -49,7 +52,7 @@
     <!-- ===== PAGE HEADER ===== -->
     <div class="order-header">
         <h2>Place Your Order</h2>
-        <p>Build your order below — pick it up at the store & pay at the counter</p>
+        <p>Build your order below — pay securely online & pick up at the store</p>
     </div>
 
     <!-- ===== MAIN LAYOUT ===== -->
@@ -201,12 +204,37 @@
                     <input type="text" id="orderNotes" placeholder="Any special requests...">
                 </div>
 
+                <!-- Payment Section -->
+                <div class="payment-section">
+                    <div class="payment-section-header">
+                        <span class="payment-icon">💳</span>
+                        <h4>Payment</h4>
+                    </div>
+
+                    <!-- Digital Wallet Buttons (Apple Pay / Google Pay) -->
+                    <div id="wallet-buttons" class="wallet-buttons">
+                        <div id="apple-pay-button" class="wallet-btn-container"></div>
+                        <div id="google-pay-button" class="wallet-btn-container"></div>
+                    </div>
+
+                    <!-- Divider between wallets and card -->
+                    <div class="payment-divider" id="paymentDivider" style="display:none;">
+                        <span>or pay with card</span>
+                    </div>
+
+                    <!-- Square Card Input -->
+                    <div id="card-container" class="sq-card-container"></div>
+
+                    <!-- Payment Error -->
+                    <div id="paymentError" class="payment-error"></div>
+                </div>
+
                 <button class="submit-order-btn" id="submitOrderBtn">
-                    Place Order — Pay at Pickup
+                    Pay & Place Order
                 </button>
 
                 <div class="pay-at-store-note">
-                    💵 Pay at the counter when you pick up · Cash & Card accepted
+                    🔒 Secure payment powered by Square
                 </div>
             </div>
         </div>

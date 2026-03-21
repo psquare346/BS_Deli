@@ -811,6 +811,98 @@ body::after {
     font-style: italic;
 }
 
+/* ========== SQUARE PAYMENT SECTION ========== */
+.payment-section {
+    background: var(--linen);
+    border: 1.5px solid var(--burlywood);
+    border-radius: 10px;
+    padding: 1.2rem;
+    margin-top: 0.25rem;
+}
+
+.payment-section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid rgba(222, 184, 135, 0.4);
+}
+
+.payment-section-header .payment-icon {
+    font-size: 1.2rem;
+}
+
+.payment-section-header h4 {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--dark-oak);
+    margin: 0;
+}
+
+/* Square Card Container */
+.sq-card-container {
+    min-height: 44px;
+    margin-bottom: 0.25rem;
+}
+
+/* Wallet Buttons (Apple Pay / Google Pay) */
+.wallet-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.wallet-btn-container {
+    min-height: 40px;
+}
+
+.wallet-btn-container:empty {
+    display: none;
+}
+
+/* Payment Divider */
+.payment-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0.75rem 0;
+}
+
+.payment-divider::before,
+.payment-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--burlywood);
+    opacity: 0.5;
+}
+
+.payment-divider span {
+    font-family: var(--font-ui);
+    font-size: 0.7rem;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+/* Payment Error */
+.payment-error {
+    display: none;
+    background: rgba(192, 57, 43, 0.08);
+    border: 1px solid rgba(192, 57, 43, 0.25);
+    border-radius: 6px;
+    padding: 0.65rem 0.85rem;
+    font-family: var(--font-ui);
+    font-size: 0.78rem;
+    color: var(--error-red);
+    margin-top: 0.5rem;
+    animation: fadeIn 0.3s ease-out;
+}
+
 /* ========== ORDER CONFIRMATION ========== */
 .confirmation-card {
     text-align: center;
